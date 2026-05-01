@@ -1,0 +1,61 @@
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint with ruff
+        run: |
+          pip install ruff
+          ruff check app/
+
+      - name: Start server
+        env:
+          LLM_PROVIDER: groq
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          LLM_MODEL: llama-3.3-70b-versatile
+        run: |
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 3
+
+      - name: Health check
+        run: |
+          curl -f http://localhost:8000/api/health
+
+      - name: Smoke test — valid review
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          LLM_PROVIDER: groq
+          LLM_MODEL: llama-3.3-70b-versatile
+        run: |
+          curl -f -X POST http://localhost:8000/api/review \
+            -H "Content-Type: application/json" \
+            -d '{"diff": "@@ -0,0 +1 @@\n+password = \"secret123\""}'
+
+      - name: Smoke test — empty diff rejected
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST http://localhost:8000/api/review \
+            -H "Content-Type: application/json" \
+            -d '{"diff": ""}')
+          echo "Status: $STATUS"
+          [ "$STATUS" = "422" ] || exit 1
