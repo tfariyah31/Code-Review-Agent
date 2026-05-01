@@ -3,7 +3,6 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
 from app.logger import log_request, get_summary, get_all_logs
 
 from app.models import (
@@ -12,8 +11,6 @@ from app.models import (
     Issue,
     RiskScore,
     UsageStats,
-    UsageSummary,
-    UsageRecord,
 )
 from app.reviewer import review_diff
 

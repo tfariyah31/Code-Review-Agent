@@ -1,8 +1,6 @@
 # app/models.py
 from pydantic import BaseModel, field_validator
 from typing import Literal
-import uuid
-from datetime import datetime
 
 
 # ── Request ───────────────────────────────────────────────────────────────────
